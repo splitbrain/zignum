@@ -1,41 +1,96 @@
+/** @typedef {import('./game-state.js').GameState} GameState */
+
 import { LINE_ROW, LINE_COL, STONE_INVERT, STONE_RANDOM, STONE_SKIP, GRID_SIZE } from '../model/constants.js';
-import { getStone, getActiveLine, hasAvailableStones, invertBoard, cloneBoard } from '../model/board.js';
+import { getActiveLine, hasAvailableStones, invertBoard, cloneBoard } from '../model/board.js';
 import { effectiveValue } from '../model/stone.js';
 
+/**
+ * Get all available (unpicked) moves in the current active line.
+ * @param {GameState} state
+ * @returns {{ stone: import('../model/stone.js').Stone, col: number, row: number }[]}
+ */
 export function getAvailableMoves(state) {
   return getActiveLine(state.board, state.activeLineType, state.activeLineIndex);
 }
 
+/**
+ * Check whether picking the stone at (col, row) is a valid move.
+ * @param {GameState} state
+ * @param {number} col
+ * @param {number} row
+ * @returns {boolean}
+ */
 export function isValidMove(state, col, row) {
   const moves = getAvailableMoves(state);
   return moves.some(m => m.col === col && m.row === row);
 }
 
-export function pickStone(state, col, row, randomValue) {
-  // Clone the state for immutability
-  const newBoard = cloneBoard(state.board);
-  const newPlayers = state.players.map(p => ({ ...p }));
-  let newActiveLineType = state.activeLineType;
-  let newActiveLineIndex = state.activeLineIndex;
-  let newCurrentPlayer = state.currentPlayer;
-
-  const stone = newBoard[row * GRID_SIZE + col];
+/**
+ * Apply a move to a board (mutates it). Handles marking picked, applying
+ * stone effects (invert/skip), and computing the next active line.
+ *
+ * @param {Array} board - The board array (will be mutated)
+ * @param {number} col - Column of the picked stone
+ * @param {number} row - Row of the picked stone
+ * @param {string} activeLineType - Current active line type ('row' or 'col')
+ * @returns {{ stoneType: string, scoreValue: number, skips: boolean, nextLineType: string, nextLineIndex: number }}
+ */
+export function applyMoveToBoard(board, col, row, activeLineType) {
+  const stone = board[row * GRID_SIZE + col];
   const stoneType = stone.type;
 
   // Mark stone as picked
   stone.picked = true;
 
+  // Compute score value for normal stones (before mutation)
+  let scoreValue = 0;
+  if (stoneType === 'normal') {
+    scoreValue = effectiveValue({ ...stone, picked: false });
+  }
+
+  // Apply board-level side effects
+  if (stoneType === STONE_INVERT) {
+    invertBoard(board);
+  }
+
+  // Switch active line (always, even for Skip)
+  const nextLineType = activeLineType === LINE_ROW ? LINE_COL : LINE_ROW;
+  const nextLineIndex = activeLineType === LINE_ROW ? col : row;
+
+  return {
+    stoneType,
+    scoreValue,
+    skips: stoneType === STONE_SKIP,
+    nextLineType,
+    nextLineIndex
+  };
+}
+
+/**
+ * Pick a stone and produce a new immutable game state. Handles scoring,
+ * special stone effects, line switching, turn switching, and game-over detection.
+ *
+ * @param {GameState} state - Current game state
+ * @param {number} col
+ * @param {number} row
+ * @param {number} [randomValue] - Predetermined random value (for network sync)
+ * @returns {{ state: GameState, randomValue: number|null }}
+ */
+export function pickStone(state, col, row, randomValue) {
+  const newBoard = cloneBoard(state.board);
+  const newPlayers = state.players.map(p => ({ ...p }));
+
+  const move = applyMoveToBoard(newBoard, col, row, state.activeLineType);
+
   let effect = null;
   let generatedRandomValue = null;
 
-  // Apply stone effect
-  switch (stoneType) {
+  switch (move.stoneType) {
     case 'normal':
-      newPlayers[state.currentPlayer].score += effectiveValue({ ...stone, picked: false });
+      newPlayers[state.currentPlayer].score += move.scoreValue;
       break;
 
     case STONE_INVERT:
-      invertBoard(newBoard);
       effect = 'invert';
       break;
 
@@ -57,24 +112,10 @@ export function pickStone(state, col, row, randomValue) {
       break;
   }
 
-  // Switch active line (always, even for Skip)
-  if (newActiveLineType === LINE_ROW) {
-    newActiveLineType = LINE_COL;
-    newActiveLineIndex = col;
-  } else {
-    newActiveLineType = LINE_ROW;
-    newActiveLineIndex = row;
-  }
-
-  // Determine next player
-  if (stoneType === STONE_SKIP) {
-    // Same player gets another turn
-  } else {
-    newCurrentPlayer = 1 - state.currentPlayer;
-  }
+  const newCurrentPlayer = move.skips ? state.currentPlayer : 1 - state.currentPlayer;
 
   // Check game over
-  const gameOver = !hasAvailableStones(newBoard, newActiveLineType, newActiveLineIndex);
+  const gameOver = !hasAvailableStones(newBoard, move.nextLineType, move.nextLineIndex);
   let winner = null;
   if (gameOver) {
     winner = getWinner(newPlayers);
@@ -84,11 +125,11 @@ export function pickStone(state, col, row, randomValue) {
     board: newBoard,
     players: newPlayers,
     currentPlayer: newCurrentPlayer,
-    activeLineType: newActiveLineType,
-    activeLineIndex: newActiveLineIndex,
+    activeLineType: move.nextLineType,
+    activeLineIndex: move.nextLineIndex,
     gameOver,
     winner,
-    lastMove: { col, row, stoneType, effect, randomValue: generatedRandomValue },
+    lastMove: { col, row, stoneType: move.stoneType, effect, randomValue: generatedRandomValue },
     mode: state.mode
   };
 
@@ -101,6 +142,3 @@ function getWinner(players) {
   return 'tie';
 }
 
-export function isGameOver(state) {
-  return state.gameOver;
-}

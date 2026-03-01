@@ -1,6 +1,6 @@
-import { AI_DEPTH, GRID_SIZE, STONE_INVERT, STONE_RANDOM, STONE_SKIP } from '../model/constants.js';
-import { getActiveLine, cloneBoard, invertBoard, getStone, hasAvailableStones } from '../model/board.js';
-import { effectiveValue } from '../model/stone.js';
+import { AI_DEPTH, STONE_RANDOM, STONE_SKIP } from '../model/constants.js';
+import { getActiveLine, cloneBoard } from '../model/board.js';
+import { applyMoveToBoard } from './game-logic.js';
 
 /**
  * Find the best move for the AI player.
@@ -13,33 +13,14 @@ export function findBestMove(state) {
   let bestMove = null;
   let bestValue = -Infinity;
 
-  const aiPlayer = state.currentPlayer;
-
-  for (const { stone, col, row } of moves) {
+  for (const { col, row } of moves) {
     const board = cloneBoard(state.board);
-    board[row * GRID_SIZE + col].picked = true;
+    const move = applyMoveToBoard(board, col, row, state.activeLineType);
 
-    let moveValue = 0;
-    let nextLineType = state.activeLineType === 'row' ? 'col' : 'row';
-    let nextLineIndex = state.activeLineType === 'row' ? col : row;
-    let isMyTurnNext;
+    const moveValue = move.scoreValue;
+    const isMyTurnNext = move.skips;
 
-    if (stone.type === STONE_INVERT) {
-      invertBoard(board);
-      moveValue = 0;
-      isMyTurnNext = false; // opponent's turn next
-    } else if (stone.type === STONE_RANDOM) {
-      moveValue = 0; // treat random as 0 value
-      isMyTurnNext = false;
-    } else if (stone.type === STONE_SKIP) {
-      moveValue = 0;
-      isMyTurnNext = true; // AI gets another turn
-    } else {
-      moveValue = effectiveValue(stone);
-      isMyTurnNext = false;
-    }
-
-    const futureValue = evaluate(board, nextLineType, nextLineIndex, isMyTurnNext, 1);
+    const futureValue = evaluate(board, move.nextLineType, move.nextLineIndex, isMyTurnNext, 1);
     const totalValue = moveValue + futureValue;
 
     if (totalValue > bestValue) {
@@ -77,35 +58,19 @@ function evaluate(board, lineType, lineIndex, isMyTurn, depth) {
 
   let bestValue = isMyTurn ? -Infinity : Infinity;
 
-  for (const { stone, col, row } of moves) {
+  for (const { col, row } of moves) {
     const simBoard = cloneBoard(board);
-    simBoard[row * GRID_SIZE + col].picked = true;
+    const move = applyMoveToBoard(simBoard, col, row, lineType);
 
-    let moveValue = 0;
-    let nextLineType = lineType === 'row' ? 'col' : 'row';
-    let nextLineIndex = lineType === 'row' ? col : row;
-    let nextIsMyTurn;
-
-    if (stone.type === STONE_INVERT) {
-      invertBoard(simBoard);
-      moveValue = 0;
-      nextIsMyTurn = !isMyTurn;
-    } else if (stone.type === STONE_RANDOM) {
-      moveValue = 0;
-      nextIsMyTurn = !isMyTurn;
-    } else if (stone.type === STONE_SKIP) {
-      moveValue = 0;
-      nextIsMyTurn = isMyTurn; // same player continues
-    } else {
-      moveValue = effectiveValue(stone);
-      if (!isMyTurn) {
-        moveValue = -moveValue; // opponent's gain is AI's loss
-      }
-      nextIsMyTurn = !isMyTurn;
+    let moveValue = move.scoreValue;
+    if (!isMyTurn) {
+      moveValue = -moveValue; // opponent's gain is AI's loss
     }
 
+    const nextIsMyTurn = move.skips ? isMyTurn : !isMyTurn;
+
     const depthFactor = 1 / (depth + 1);
-    const futureValue = evaluate(simBoard, nextLineType, nextLineIndex, nextIsMyTurn, depth + 1);
+    const futureValue = evaluate(simBoard, move.nextLineType, move.nextLineIndex, nextIsMyTurn, depth + 1);
     const totalValue = moveValue * depthFactor + futureValue;
 
     if (isMyTurn) {

@@ -1,14 +1,26 @@
 import { loadPlayerName, savePlayerName } from '../utils/storage.js';
 
 export class PlayerSetup extends HTMLElement {
+  #mode;
+  #joinId = null;
+  #isJoining = false;
+
   set mode(value) {
-    this._mode = value;
-    this._render();
+    this.#mode = value;
+    this.#render();
   }
 
-  _render() {
+  set joinId(value) {
+    this.#joinId = value;
+  }
+
+  set isJoining(value) {
+    this.#isJoining = value;
+  }
+
+  #render() {
     this.classList.add('player-setup');
-    const mode = this._mode;
+    const mode = this.#mode;
     const name1 = loadPlayerName(0) || 'Player 1';
     const name2 = loadPlayerName(1) || 'Player 2';
 
@@ -49,7 +61,7 @@ export class PlayerSetup extends HTMLElement {
 
       this.dispatchEvent(new CustomEvent('players-ready', {
         bubbles: true,
-        detail: { player1Name: p1Name, player2Name: p2Name, joinId: this._joinId || null }
+        detail: { player1Name: p1Name, player2Name: p2Name, joinId: this.#joinId || null }
       }));
     });
   }

@@ -1,13 +1,19 @@
 export class GameOverDialog extends HTMLElement {
+  #players;
+  #winner;
+  #mode;
+
   show(players, winner, mode) {
-    this._players = players;
-    this._winner = winner;
-    this._mode = mode;
-    this._render();
+    this.#players = players;
+    this.#winner = winner;
+    this.#mode = mode;
+    this.#render();
   }
 
-  _render() {
-    const { _players: players, _winner: winner, _mode: mode } = this;
+  #render() {
+    const players = this.#players;
+    const winner = this.#winner;
+    const mode = this.#mode;
 
     let resultText;
     if (winner === 'tie') {
