@@ -66,6 +66,16 @@ export class HowToPlay extends HTMLElement {
         </dl>
       </section>
 
+      <h2>About</h2>
+      
+      <section>
+        <p>This game is inspired by a game written for the Sharp Zaurus PDA for a University project
+        by Frank Schubert and <a href="https://www.splitbrain.org">Andreas Gohr</a> back in 2003.
+        That game was in turn inspired a similar game that was available for Palm OS PDAs around the early 2000s.</p>
+        
+        <p>The version available here was mostly written by Claude, prompted based on the original C++ code.</p>
+      </section>
+
       <button id="back-btn">Back to Menu</button>
     `;
 
