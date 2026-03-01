@@ -1,4 +1,31 @@
 /**
+ * ICE server configuration for WebRTC connections.
+ * Includes STUN for NAT discovery and TURN relays as fallback
+ * when direct peer-to-peer connections cannot be established
+ * (e.g. symmetric NATs, restrictive firewalls).
+ * @type {RTCIceServer[]}
+ */
+const ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  {
+    urls: 'turn:openrelay.metered.ca:80',
+    username: 'openrelayproject',
+    credential: 'openrelayproject'
+  },
+  {
+    urls: 'turn:openrelay.metered.ca:443',
+    username: 'openrelayproject',
+    credential: 'openrelayproject'
+  },
+  {
+    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+    username: 'openrelayproject',
+    credential: 'openrelayproject'
+  }
+];
+
+/**
  * PeerJS wrapper for network play.
  * Handles peer creation, connection, messaging, and reconnection.
  * @class
@@ -27,7 +54,7 @@ export class PeerManager {
   createGame() {
     return new Promise((resolve, reject) => {
       this.#isHost = true;
-      this.#peer = new Peer();
+      this.#peer = new Peer({ config: { iceServers: ICE_SERVERS } });
 
       this.#peer.on('open', (id) => {
         resolve(id);
@@ -61,7 +88,7 @@ export class PeerManager {
   joinGame(peerId) {
     return new Promise((resolve, reject) => {
       this.#isHost = false;
-      this.#peer = new Peer();
+      this.#peer = new Peer({ config: { iceServers: ICE_SERVERS } });
 
       this.#peer.on('open', () => {
         const conn = this.#peer.connect(peerId, { reliable: true });
