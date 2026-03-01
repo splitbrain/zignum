@@ -346,6 +346,65 @@ game-screen {
   & button {
     margin-top: var(--space-sm);
   }
+
+  & .secondary-btn {
+    background: none;
+    border: none;
+    color: var(--color-muted);
+
+    &:hover {
+      background: none;
+      color: var(--color-active);
+    }
+  }
+}
+
+/* Connection Log (inside network lobby) */
+.connection-log-details {
+  margin: var(--space-lg) auto 0;
+  max-width: 460px;
+  text-align: left;
+
+  & summary {
+    cursor: pointer;
+    color: var(--color-muted);
+    text-align: center;
+    padding: var(--space-sm);
+    user-select: none;
+  }
+}
+
+.connection-log {
+  max-height: 180px;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--color-bg) 60%, var(--color-surface));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-sm);
+  font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 0.8em;
+  line-height: 1.6;
+}
+
+.log-entry {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.log-info {
+  color: var(--color-muted);
+}
+
+.log-success {
+  color: var(--color-positive);
+}
+
+.log-warn {
+  color: var(--color-special);
+}
+
+.log-error {
+  color: var(--color-negative);
 }
 
 /* Disconnection Dialog */
@@ -354,9 +413,18 @@ game-screen {
   margin: auto;
   color: var(--color-surface);
   background: transparent;
-  font-size: 1.25em;
+  text-align: center;
 
   &::backdrop {
     background: rgba(0, 0, 0, 0.7);
+  }
+
+  & p {
+    font-size: 1.25em;
+    margin-bottom: var(--space-sm);
+  }
+
+  & button {
+    margin-top: var(--space-lg);
   }
 }

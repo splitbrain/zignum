@@ -257,9 +257,19 @@ export class ZnumApp extends HTMLElement {
     const lobby = document.createElement('network-lobby');
     this.#content.appendChild(lobby);
 
+    // Register status callback before createGame so early messages are captured
+    this.#peerManager.onStatus((level, message) => {
+      lobby.addLog(level, message);
+    });
+
     try {
       const peerId = await this.#peerManager.createGame();
       lobby.showHost(peerId);
+
+      // Re-register status callback — showHost replaces innerHTML
+      this.#peerManager.onStatus((level, message) => {
+        lobby.addLog(level, message);
+      });
 
       this.#peerManager.onConnected(() => {
         // Wait for guest to send player-info
@@ -274,6 +284,11 @@ export class ZnumApp extends HTMLElement {
       });
     } catch (err) {
       lobby.showError(err.message || 'Failed to create game');
+
+      // Re-register status callback — showError replaces innerHTML
+      this.#peerManager.onStatus((level, message) => {
+        lobby.addLog(level, message);
+      });
     }
   }
 
@@ -294,6 +309,11 @@ export class ZnumApp extends HTMLElement {
     this.#content.appendChild(lobby);
     lobby.showJoining();
 
+    // Register status callback before joinGame so early messages are captured
+    this.#peerManager.onStatus((level, message) => {
+      lobby.addLog(level, message);
+    });
+
     try {
       await this.#peerManager.joinGame(peerId);
 
@@ -311,6 +331,11 @@ export class ZnumApp extends HTMLElement {
       });
     } catch (err) {
       lobby.showError(err.message || 'Failed to join game');
+
+      // Re-register status callback — showError replaces innerHTML
+      this.#peerManager.onStatus((level, message) => {
+        lobby.addLog(level, message);
+      });
     }
   }
 
@@ -422,6 +447,7 @@ export class ZnumApp extends HTMLElement {
 
   /**
    * Display a full-screen overlay indicating the opponent has disconnected.
+   * Includes a "Back to Menu" button so the user is not stranded.
    */
   #showDisconnectOverlay() {
     // Remove existing overlay
@@ -429,8 +455,18 @@ export class ZnumApp extends HTMLElement {
     const dialog = document.createElement('dialog');
     dialog.className = 'disconnect-dialog';
     dialog.id = 'disconnect-overlay';
-    dialog.textContent = 'Opponent disconnected. Waiting for reconnection...';
+    dialog.innerHTML = `
+      <p>Opponent disconnected.</p>
+      <p>Waiting for reconnection...</p>
+      <button id="disconnect-back-btn">Back to Menu</button>
+    `;
     document.body.appendChild(dialog);
+
+    dialog.querySelector('#disconnect-back-btn').addEventListener('click', () => {
+      this.#cleanup();
+      this.#showMenu();
+    });
+
     dialog.showModal();
   }
 
