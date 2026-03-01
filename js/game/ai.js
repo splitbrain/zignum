@@ -3,8 +3,9 @@ import { getActiveLine, cloneBoard } from '../model/board.js';
 import { applyMoveToBoard } from './game-logic.js';
 
 /**
- * Find the best move for the AI player.
- * Returns { col, row } of the best stone to pick.
+ * Find the best move for the AI player using minimax look-ahead.
+ * @param {import('./game-state.js').GameState} state - Current game state
+ * @returns {{ col: number, row: number }|null} Best stone to pick, or null if no moves
  */
 export function findBestMove(state) {
   const moves = getActiveLine(state.board, state.activeLineType, state.activeLineIndex);

@@ -5,17 +5,37 @@ import './game-board.js';
 import './score-bar.js';
 import './game-over-dialog.js';
 
+/**
+ * Game controller component. Wires together the board, score bar, status
+ * message, and game-over dialog. Handles human clicks, AI scheduling,
+ * and remote move application.
+ * @class
+ * @extends HTMLElement
+ */
 export class GameScreen extends HTMLElement {
+  /** @type {ScoreBar} */
   #scoreBar;
+  /** @type {HTMLDivElement} */
   #statusMsg;
+  /** @type {GameBoard} */
   #board;
+  /** @type {GameOverDialog} */
   #gameOverDialog;
+  /** @type {import('../game/game-state.js').GameState} */
   #state;
+  /** @type {string} Game mode ('solo', 'hotseat', 'network') */
   #mode;
+  /** @type {Object} Extra options such as localPlayer index */
   #options;
+  /** @type {boolean} Whether the AI is currently computing */
   #aiThinking = false;
+  /** @type {number|null} Index of the local player in network mode */
   #localPlayer = null;
 
+  /**
+   * Create child elements (score bar, status message, board, game-over dialog)
+   * and attach the stone-clicked listener.
+   */
   connectedCallback() {
     this.#scoreBar = document.createElement('score-bar');
     this.#statusMsg = document.createElement('div');
@@ -33,6 +53,13 @@ export class GameScreen extends HTMLElement {
     });
   }
 
+  /**
+   * Initialize a new game with two players and render the initial board.
+   * @param {string} player1Name - Name of player 1
+   * @param {string} player2Name - Name of player 2
+   * @param {string} mode - Game mode ('solo', 'hotseat', 'network')
+   * @param {Object} [options={}] - Extra options (e.g. { localPlayer: 0|1 })
+   */
   startGame(player1Name, player2Name, mode, options = {}) {
     this.#mode = mode;
     this.#options = options;
@@ -52,16 +79,28 @@ export class GameScreen extends HTMLElement {
     }
   }
 
+  /**
+   * Replace the current game state and re-render. Used by network mode
+   * to apply the authoritative state from the host.
+   * @param {import('../game/game-state.js').GameState} state
+   */
   setState(state) {
     this.#state = state;
     this.#render();
     this.#updateStatus();
   }
 
+  /**
+   * Return the current game state.
+   * @returns {import('../game/game-state.js').GameState}
+   */
   getState() {
     return this.#state;
   }
 
+  /**
+   * Re-render the score bar, board, and game-over dialog from current state.
+   */
   #render() {
     const s = this.#state;
     this.#scoreBar.update(s.players, s.currentPlayer, s.gameOver);
@@ -74,6 +113,10 @@ export class GameScreen extends HTMLElement {
     }
   }
 
+  /**
+   * Update the status message text based on whose turn it is
+   * and the effect of the last move (invert, random, skip).
+   */
   #updateStatus() {
     const s = this.#state;
     if (s.gameOver) {
@@ -99,6 +142,12 @@ export class GameScreen extends HTMLElement {
     this.#statusMsg.textContent = msg;
   }
 
+  /**
+   * Handle a stone click from the board. Validates the move, applies it,
+   * dispatches a network event if needed, and schedules an AI move if applicable.
+   * @param {number} col - Column of the clicked stone
+   * @param {number} row - Row of the clicked stone
+   */
   #onStoneClicked(col, row) {
     const s = this.#state;
     if (s.gameOver) return;
@@ -130,6 +179,13 @@ export class GameScreen extends HTMLElement {
     }
   }
 
+  /**
+   * Apply a move received from the remote peer. Validates the move
+   * and updates state accordingly.
+   * @param {number} col - Column of the picked stone
+   * @param {number} row - Row of the picked stone
+   * @param {number} [randomValue] - Predetermined random value (for Random stones)
+   */
   applyRemoteMove(col, row, randomValue) {
     const s = this.#state;
     if (s.gameOver) return;
@@ -144,6 +200,11 @@ export class GameScreen extends HTMLElement {
     this.#updateStatus();
   }
 
+  /**
+   * Schedule the AI to compute and execute its move(s) after a short delay.
+   * Dynamically imports the AI module and loops while it remains the AI's turn
+   * (e.g. after picking a Skip stone).
+   */
   async #scheduleAIMove() {
     this.#aiThinking = true;
     this.#statusMsg.textContent = `${this.#state.players[this.#state.currentPlayer].name} is thinking...`;

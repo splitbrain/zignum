@@ -1,4 +1,14 @@
+/**
+ * Network lobby screen. Displays either a shareable URL for the host,
+ * a "Connecting..." message for the guest, or an error message.
+ * @class
+ * @extends HTMLElement
+ */
 export class NetworkLobby extends HTMLElement {
+  /**
+   * Show the host lobby with a shareable game URL and a "Copy URL" button.
+   * @param {string} peerId - The host's peer ID to embed in the URL
+   */
   showHost(peerId) {
     this.classList.add('network-lobby');
     const url = `${window.location.origin}${window.location.pathname}?join=${peerId}`;
@@ -22,6 +32,9 @@ export class NetworkLobby extends HTMLElement {
     });
   }
 
+  /**
+   * Show a "Connecting..." message while the guest waits to join.
+   */
   showJoining() {
     this.classList.add('network-lobby');
     this.innerHTML = `
@@ -30,6 +43,10 @@ export class NetworkLobby extends HTMLElement {
     `;
   }
 
+  /**
+   * Show a connection error message with a "Back to Menu" button.
+   * @param {string} message - The error message to display
+   */
   showError(message) {
     this.classList.add('network-lobby');
     this.innerHTML = `

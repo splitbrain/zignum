@@ -136,6 +136,11 @@ export function pickStone(state, col, row, randomValue) {
   return { state: newState, randomValue: generatedRandomValue };
 }
 
+/**
+ * Determine the winner from the final player scores.
+ * @param {import('../model/player.js').Player[]} players - Two-element array of players
+ * @returns {0|1|'tie'} Index of the winning player, or 'tie'
+ */
 function getWinner(players) {
   if (players[0].score > players[1].score) return 0;
   if (players[1].score > players[0].score) return 1;
