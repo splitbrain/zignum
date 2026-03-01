@@ -1,0 +1,9 @@
+export const GRID_SIZE = 7;
+export const SPECIAL_COUNT = 5;
+export const STONE_INVERT = 'invert';
+export const STONE_RANDOM = 'random';
+export const STONE_SKIP = 'skip';
+export const SPECIAL_TYPES = [STONE_INVERT, STONE_RANDOM, STONE_SKIP];
+export const LINE_ROW = 'row';
+export const LINE_COL = 'col';
+export const AI_DEPTH = 3;
