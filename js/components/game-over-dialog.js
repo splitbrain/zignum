@@ -1,8 +1,24 @@
+/**
+ * Game-over dialog displaying the winner, scores, and action buttons.
+ * Uses the native <dialog> element with showModal() for proper accessibility.
+ * In network mode an additional "Rematch" button is shown.
+ * @class
+ * @extends HTMLElement
+ */
 export class GameOverDialog extends HTMLElement {
+  /** @type {import('../model/player.js').Player[]} */
   #players;
+  /** @type {number|'tie'|null} */
   #winner;
+  /** @type {string} */
   #mode;
 
+  /**
+   * Display the game-over dialog with results and action buttons.
+   * @param {import('../model/player.js').Player[]} players - Both players
+   * @param {number|'tie'} winner - Index of the winner or 'tie'
+   * @param {string} mode - Current game mode
+   */
   show(players, winner, mode) {
     this.#players = players;
     this.#winner = winner;
@@ -10,6 +26,10 @@ export class GameOverDialog extends HTMLElement {
     this.#render();
   }
 
+  /**
+   * Build the dialog HTML with result text, scores, and buttons.
+   * Wires click handlers for "New Game", "Back to Menu", and optionally "Rematch".
+   */
   #render() {
     const players = this.#players;
     const winner = this.#winner;
@@ -30,14 +50,15 @@ export class GameOverDialog extends HTMLElement {
     }
 
     this.innerHTML = `
-      <div class="game-over-overlay">
-        <div class="game-over-dialog">
-          <h2>${resultText}</h2>
-          <p>${scoreText}</p>
-          ${buttons}
-        </div>
-      </div>
+      <dialog class="game-over-dialog">
+        <h2>${resultText}</h2>
+        <p>${scoreText}</p>
+        ${buttons}
+      </dialog>
     `;
+
+    const dialog = this.querySelector('dialog');
+    dialog.showModal();
 
     this.querySelector('#new-game-btn')?.addEventListener('click', () => {
       this.dispatchEvent(new CustomEvent('new-game', { bubbles: true }));
@@ -52,6 +73,9 @@ export class GameOverDialog extends HTMLElement {
     });
   }
 
+  /**
+   * Show a "Waiting for opponent..." status after the local player requests a rematch.
+   */
   showRematchRequested() {
     const dialog = this.querySelector('.game-over-dialog');
     if (dialog) {
@@ -64,6 +88,9 @@ export class GameOverDialog extends HTMLElement {
     }
   }
 
+  /**
+   * Show a rematch offer with an "Accept" button when the remote player requests a rematch.
+   */
   showRematchOffer() {
     const dialog = this.querySelector('.game-over-dialog');
     if (dialog) {
@@ -80,7 +107,12 @@ export class GameOverDialog extends HTMLElement {
     }
   }
 
+  /**
+   * Hide the dialog by closing it and clearing all inner HTML.
+   */
   hide() {
+    const dialog = this.querySelector('dialog');
+    if (dialog?.open) dialog.close();
     this.innerHTML = '';
   }
 }

@@ -1,18 +1,28 @@
 /**
  * PeerJS wrapper for network play.
  * Handles peer creation, connection, messaging, and reconnection.
+ * @class
  */
 export class PeerManager {
+  /** @type {Peer|null} PeerJS Peer instance */
   #peer = null;
+  /** @type {DataConnection|null} Active data connection to the remote peer */
   #conn = null;
+  /** @type {boolean} Whether this instance is the game host */
   #isHost = false;
+  /** @type {Function|null} Callback invoked when a message is received */
   #onMessageCallback = null;
+  /** @type {Function|null} Callback invoked when the connection opens */
   #onConnectedCallback = null;
+  /** @type {Function|null} Callback invoked when the connection closes */
   #onDisconnectedCallback = null;
+  /** @type {boolean} Whether this manager has been destroyed */
   #destroyed = false;
 
   /**
-   * Create a new game as host. Returns the peer ID.
+   * Create a new game as host. Opens a PeerJS peer and waits for
+   * incoming connections.
+   * @returns {Promise<string>} The peer ID to share with the guest
    */
   createGame() {
     return new Promise((resolve, reject) => {
@@ -44,7 +54,9 @@ export class PeerManager {
   }
 
   /**
-   * Join an existing game as guest.
+   * Join an existing game as guest by connecting to the host's peer ID.
+   * @param {string} peerId - The host's peer ID
+   * @returns {Promise<void>} Resolves when the peer is open and connection is initiated
    */
   joinGame(peerId) {
     return new Promise((resolve, reject) => {
@@ -72,6 +84,10 @@ export class PeerManager {
     });
   }
 
+  /**
+   * Wire up open/data/close/error handlers on a data connection.
+   * @param {DataConnection} conn - The PeerJS data connection to configure
+   */
   #setupConnection(conn) {
     this.#conn = conn;
 
@@ -92,32 +108,60 @@ export class PeerManager {
     });
   }
 
+  /**
+   * Whether this peer is the game host.
+   * @returns {boolean}
+   */
   get isHost() {
     return this.#isHost;
   }
 
+  /**
+   * Whether the data connection is currently open.
+   * @returns {boolean}
+   */
   get isConnected() {
     return this.#conn && this.#conn.open;
   }
 
+  /**
+   * Send a JSON message to the remote peer.
+   * @param {Object} message - The message object to send
+   */
   send(message) {
     if (this.#conn && this.#conn.open) {
       this.#conn.send(message);
     }
   }
 
+  /**
+   * Register a callback for incoming messages.
+   * @param {Function} callback - Invoked with the received message object
+   */
   onMessage(callback) {
     this.#onMessageCallback = callback;
   }
 
+  /**
+   * Register a callback for when the connection opens.
+   * @param {Function} callback - Invoked when the data channel opens
+   */
   onConnected(callback) {
     this.#onConnectedCallback = callback;
   }
 
+  /**
+   * Register a callback for when the connection closes.
+   * @param {Function} callback - Invoked when the data channel closes
+   */
   onDisconnected(callback) {
     this.#onDisconnectedCallback = callback;
   }
 
+  /**
+   * Tear down the connection and peer. Marks this manager as destroyed
+   * so reconnection attempts are suppressed.
+   */
   destroy() {
     this.#destroyed = true;
     if (this.#conn) {
